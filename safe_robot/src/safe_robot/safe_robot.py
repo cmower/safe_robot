@@ -154,16 +154,6 @@ class SafetyNode:
         self.dt = 1.0/float(self.hz)
         self.dur = rospy.Duration(self.dt)
 
-        # Setup debugging
-        self.debug = rospy.get_param('~debug', False)
-        if self.debug:
-            debug_hz = 20
-            self.box_limit_marker = self.get_box_limit_marker()
-            self.box_limit_marker_pub = rospy.Publisher('safe_robot/box_limit/marker', Marker, queue_size=10)
-            rospy.Timer(rospy.Duration(1.0/float(debug_hz)), self.debug_loop)
-        else:
-            self.box_limit_marker = None
-
         # Setup publishers
         self.diag_pub = rospy.Publisher('robot_safety/%s/status' % self.node_name[1:], DiagnosticStatus, queue_size=10)
         cmd_topic = 'joint_states/target/command'
@@ -177,6 +167,16 @@ class SafetyNode:
         # Setup robot safety checker
         self.robot_safety_checker = RobotSafetyChecker(**robot_safety_checker_setup)
 
+        # Setup debugging
+        self.debug = rospy.get_param('~debug', False)
+        if self.debug:
+            debug_hz = 20
+            self.box_limit_marker = self.robot_safety_checker.get_box_limit_marker()
+            self.box_limit_marker_pub = rospy.Publisher('safe_robot/box_limit/marker', Marker, queue_size=10)
+            rospy.Timer(rospy.Duration(1.0/float(debug_hz)), self.debug_loop)
+        else:
+            self.box_limit_marker = None
+
         # Set joint name order
         self.joint_name_order = rospy.get_param('~joint_name_order', self.robot_safety_checker.joint_names)
 
@@ -188,6 +188,8 @@ class SafetyNode:
         for name in self.joint_name_order:
             msg += name + '\n'
         rospy.loginfo(msg)
+        if self.debug:
+            rospy.loginfo("[%s] started node in debug mode", self.node_name)
 
     def resolve_joint_order(self, q):
         qout = np.zeros(self.robot_safety_checker.ndof)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from safe_robot.safe_robot_client import SafetyNode
+from safe_robot.safe_robot import SafetyNode
 
 def main():
     SafetyNode().spin()
