@@ -3,6 +3,8 @@
 
   <!-- THIS CONFIGURATION IS NOT BEING USED AS A SOLVER -->
 
+  <IKSolver Name="MySolver"/>
+
   <UnconstrainedEndPoseProblem Name="MyProblem">
 
     <PlanningScene>
