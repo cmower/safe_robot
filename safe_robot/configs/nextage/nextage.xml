@@ -9,7 +9,6 @@
 
     <PlanningScene>
       <Scene>
-        <Debug>1</Debug>
         <JointGroup>whole_body</JointGroup>
         <URDF>{nextage_smart_factory}/urdf/nextagea_dual_pick.urdf</URDF>
         <SRDF>{nextagea_moveit_config}/config/NextageAOpen.srdf</SRDF>
