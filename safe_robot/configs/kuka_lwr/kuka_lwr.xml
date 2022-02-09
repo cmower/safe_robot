@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<KukaExoticaConfig>
+
+  <!-- THIS CONFIGURATION IS NOT BEING USED AS A SOLVER -->
+
+  <UnconstrainedEndPoseProblem Name="MyProblem">
+
+    <PlanningScene>
+      <Scene>
+        <JointGroup>arm</JointGroup>
+        <URDF>{exotica_examples}/resources/robots/lwr_simplified.urdf</URDF>
+        <SRDF>{exotica_examples}/resources/robots/lwr_simplified.srdf</SRDF>
+      </Scene>
+    </PlanningScene>
+
+  </UnconstrainedEndPoseProblem>
+
+</KukaExoticaConfig>
