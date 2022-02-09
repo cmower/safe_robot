@@ -9,7 +9,7 @@ from diagnostic_msgs.msg import DiagnosticStatus
 
 class RobotSafetyChecker:
 
-    def __init__(self, exotica_xml_filename, link_xlim, link_ylim, link_zlim, safe_links, position_limit_factor, velocity_limit_factor, K, D):
+    def __init__(self, exotica_xml_filename, link_xlim, link_ylim, link_zlim, safe_links, joint_position_limit_factor, joint_velocity_limit_factor, K, D):
 
         # Set variables
         self.q_curr = None
@@ -40,10 +40,10 @@ class RobotSafetyChecker:
         self.ndof = len(self.joint_names)
 
         # Extract joint position/velocity limits from kinematic tree
-        joint_position_limits = position_limit_factor*self.kinematic_tree.get_joint_limits()
+        joint_position_limits = joint_position_limit_factor*self.kinematic_tree.get_joint_limits()
         self.joint_position_limits_lower = joint_position_limits[:,0]
         self.joint_position_limits_upper = joint_position_limits[:,1]
-        self.joint_velocity_limits_upper = velocity_limit_factor*self.kinematic_tree.get_velocity_limits()
+        self.joint_velocity_limits_upper = joint_velocity_limit_factor*self.kinematic_tree.get_velocity_limits()
         self.joint_velocity_limits_lower = -self.joint_velocity_limits_upper.copy()
 
     # Private methods
@@ -169,11 +169,11 @@ class RobotSafetyChecker:
 class SafetyNode:
 
 
-    def __init__(self, name):
+    def __init__(self):
 
         # Setup node
-        self.node_name = '%s_safety_node' % name
-        rospy.init_node(self.node_name)
+        rospy.init_node('robot_safety_node')
+        self.node_name = rospy.get_name()
 
         # Set variables
         self.main_loop_timer = None
@@ -186,8 +186,8 @@ class SafetyNode:
             link_ylim=[float(n) for n in rospy.get_param('~link_ylim').split(' ')],
             link_zlim=[float(n) for n in rospy.get_param('~link_zlim').split(' ')],
             safe_links=rospy.get_param('~safe_links').split(' '),
-            position_limit_factor=rospy.get_param('~position_limit_factor', 0.95),
-            velocity_limit_factor=rospy.get_param('~velocity_limit_factor', 0.95),
+            joint_position_limit_factor=rospy.get_param('~joint_position_limit_factor', 0.95),
+            joint_velocity_limit_factor=rospy.get_param('~joint_velocity_limit_factor', 0.95),
             K=rospy.get_param('~K', 1.0),
             D=rospy.get_param('~D', 0.1),
         )
@@ -198,7 +198,7 @@ class SafetyNode:
         self.dur = rospy.Duration(self.dt)
 
         # Setup publishers
-        self.diag_pub = rospy.Publisher('robot_safety/%s/status' % name, DiagnosticStatus, queue_size=10)
+        self.diag_pub = rospy.Publisher('robot_safety/%s/status' % self.node_name, DiagnosticStatus, queue_size=10)
         if publish_as_joint_state:
             self.publish = self.publish_joint_state
             self.pub = rospy.Publisher('joint_state/target/command', JointState, queue_size=10)
@@ -295,3 +295,6 @@ class SafetyNode:
                 qd_target = self.resolve_joint_order(self.robot_safety_checker.get_next_joint_velocity_state())
                 self.publish(q_target, qd_target)
         self.publish_report()
+
+    def spin(self):
+        rospy.spin()
