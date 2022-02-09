@@ -150,9 +150,6 @@ class SafetyNode:
         )
 
         publish_as_joint_state = rospy.get_param('~publish_as_joint_state', True)
-        self.hz = rospy.get_param('~hz', 100)
-        self.dt = 1.0/float(self.hz)
-        self.dur = rospy.Duration(self.dt)
 
         # Setup publishers
         self.diag_pub = rospy.Publisher('robot_safety/%s/status' % self.node_name[1:], DiagnosticStatus, queue_size=10)
