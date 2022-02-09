@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<NextageExoticaConfig>
+
+  <!-- THIS CONFIGURATION IS NOT BEING USED AS A SOLVER -->
+
+  <IKSolver Name="MySolver"/>
+
+  <UnconstrainedEndPoseProblem Name="MyProblem">
+
+    <PlanningScene>
+      <Scene>
+        <Debug>1</Debug>
+        <JointGroup>whole_body</JointGroup>
+        <URDF>{nextage_smart_factory}/urdf/nextagea_dual_pick.urdf</URDF>
+        <SRDF>{nextagea_moveit_config}/config/NextageAOpen.srdf</SRDF>
+      </Scene>
+    </PlanningScene>
+
+  </UnconstrainedEndPoseProblem>
+
+</NextageExoticaConfig>

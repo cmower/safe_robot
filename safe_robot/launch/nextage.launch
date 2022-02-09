@@ -1,0 +1,14 @@
+<launch>
+
+  <node name="nextage_safety_node" pkg="safe_robot" type="safe_robot_node.py" output="screen">
+    <param name="exotica_xml_filename" type="str" value="$(find safe_robot)/configs/nextage/nextage.xml"/>
+    <param name="link_xlim" type="str" value="-0.5 0.5"/>
+    <param name="link_ylim" type="str" value="-0.5 0.5"/>
+    <param name="link_zlim" type="str" value="-0.5 2.0"/>
+    <param name="safe_links" type="str" value=""/>
+    <param name="debug" type="bool" value="true"/>
+    <!-- <remap from="joint_state/target/command" to="TODO"/> <!-\- topic name that publishes joint state to robot as either  sensor_msgs/JointStates or std_msgs/Float64MultiArray -\-> -->
+    <!-- <remap from="joint_states/target" to="TODO"/> <!-\- topic name that listens for targets as sensor_msgs/JointStates -\-> -->
+  </node>
+
+</launch>
