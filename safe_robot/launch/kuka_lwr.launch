@@ -1,6 +1,6 @@
 <launch>
 
-  <node name="kuka_lwr_safety_node" pkg="safe_robot" type="safe_robot.py">
+  <node name="kuka_lwr_safety_node" pkg="safe_robot" type="safe_robot_node.py" output="screen">
     <param name="exotica_xml_filename" type="str" value="$(find safe_robot)/configs/kuka_lwr/kuka_lwr.xml"/>
     <param name="link_xlim" type="str" value="-0.5 0.5"/>
     <param name="link_ylim" type="str" value="-0.5 0.5"/>
