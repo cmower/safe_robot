@@ -130,6 +130,8 @@ class RobotSafetyChecker:
                 info += f'{link_name}:\n'
                 for dim in ('x', 'y', 'z'):
                     info += f'  %s: %s\n' % (dim, str(link[dim]))
+        elif self.flag == -3:
+            info = 'robot in self collision'
         else:
             raise AttributeError(f"did not recognize flag {self.flag}!")
 
