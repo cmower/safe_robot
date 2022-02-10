@@ -76,8 +76,8 @@ class RobotSafetyChecker:
     def get_box_limit_marker(self):
         """Returns a ROS marker for visualizing the box limit."""
         marker = Marker()
-        marker.header.frame_id = 'safe_robot/' + self.base_link_id
-        marker.ns = 'safe_robot'
+        marker.header.frame_id = self.base_link_id
+        # marker.ns = 'safe_robot'
         marker.id = 0
         marker.type = Marker.CUBE
         marker.action = Marker.ADD
