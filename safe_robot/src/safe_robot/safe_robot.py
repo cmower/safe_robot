@@ -210,7 +210,11 @@ class SafetyNode:
         if self.debug:
             rospy.loginfo("[%s] started node in debug mode", self.node_name)
             rospy.loginfo("[%s] using '%s' as base link", self.node_name, self.robot_safety_checker.base_link_id)
-            msg = "[%s] performing checks:\n" % (self.node_name, self.robot_safety_checker.base_link_id)
+            msg = "[%s] safe links:\n" % self.node_name
+            for link_name in self.robot_safety_checker.safe_links:
+                msg += '      - %s\n' % link_name
+            rospy.loginfo(msg)
+            msg = "[%s] performing checks:\n" % self.node_name
             if self.robot_safety_checker.check_joint_limits:
                 msg += '      - joint limits\n'
             if self.robot_safety_checker.check_link_limits:
