@@ -104,7 +104,7 @@ class RobotSafetyChecker:
                 return is_safe
 
         # Check links are within limits
-        self.self.check_link_limits:
+        if self.check_link_limits:
             if not self._links_in_limits():
                 is_safe = False
                 self.flag = -2
