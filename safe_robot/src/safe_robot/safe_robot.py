@@ -9,7 +9,7 @@ from diagnostic_msgs.msg import DiagnosticStatus
 
 class RobotSafetyChecker:
 
-    def __init__(self, exotica_xml_filename, link_xlim, link_ylim, link_zlim, safe_links, joint_position_limit_factor):
+    def __init__(self, exotica_xml_filename, link_xlim, link_ylim, link_zlim, safe_links, joint_position_limit_factor, safe_distance):
 
         # Set variables
         self.q_targ = None
@@ -30,6 +30,7 @@ class RobotSafetyChecker:
         self.base_link_id = self.scene.get_model_link_names()[0]
         self.joint_names = self.scene.get_controlled_joint_names()
         self.ndof = len(self.joint_names)
+        self.safe_distance = safe_distance
 
         # Extract joint position/velocity limits from kinematic tree
         joint_position_limits = joint_position_limit_factor*self.kinematic_tree.get_joint_limits()
@@ -53,6 +54,9 @@ class RobotSafetyChecker:
             }
         self.safe_links = safe_links
         return all(all(link.values()) for link in self.safe_links.values())
+
+    def _is_state_valid(self):
+        return self.scene.is_state_valid(safe_distance=self.safe_distance)
 
     # Public methods
 
@@ -100,6 +104,12 @@ class RobotSafetyChecker:
             is_safe = False
             self.flag = -2
             return is_safe
+        # Check self-collision
+        if self.check_self_collision:
+            if not self._is_state_valid():
+                is_safe = False
+                self.flag = -3
+                return is_safe
 
         return is_safe
 
