@@ -16,6 +16,9 @@ class RobotSafetyChecker:
         self.joint_position_limit_indicators = None
         self.safe_links = None
         self.flag = 0
+        self.check_joint_limits = True
+        self.check_link_limits = True
+        self.check_self_collision = True
 
         # Set box limits
         self.link_xlim = link_xlim
@@ -94,16 +97,19 @@ class RobotSafetyChecker:
         self.flag = 0  # zero indicates no issues
 
         # Check position limits
-        if not self._in_joint_position_limits():
-            is_safe = False
-            self.flag = -1
-            return is_safe
+        if self.check_joint_limits:
+            if not self._in_joint_position_limits():
+                is_safe = False
+                self.flag = -1
+                return is_safe
 
         # Check links are within limits
-        if not self._links_in_limits():
-            is_safe = False
-            self.flag = -2
-            return is_safe
+        self.self.check_link_limits:
+            if not self._links_in_limits():
+                is_safe = False
+                self.flag = -2
+                return is_safe
+
         # Check self-collision
         if self.check_self_collision:
             if not self._is_state_valid():
@@ -176,6 +182,9 @@ class SafetyNode:
 
         # Setup robot safety checker
         self.robot_safety_checker = RobotSafetyChecker(**robot_safety_checker_setup)
+        self.robot_safety_checker.check_joint_limits = rospy.get_param('~check_joint_limits', True)
+        self.robot_safety_checker.check_link_limits = rospy.get_param('~check_link_limits', True)
+        self.robot_safety_checker.check_self_collision = rospy.get_param('~check_self_collision', True)
 
         # Setup debugging
         self.debug = rospy.get_param('~debug', False)
@@ -200,6 +209,15 @@ class SafetyNode:
         rospy.loginfo(msg)
         if self.debug:
             rospy.loginfo("[%s] started node in debug mode", self.node_name)
+            rospy.loginfo("[%s] using '%s' as base link", self.node_name, self.robot_safety_checker.base_link_id)
+            msg = "[%s] performing checks:\n" % (self.node_name, self.robot_safety_checker.base_link_id)
+            if self.robot_safety_checker.check_joint_limits:
+                msg += '      - joint limits\n'
+            if self.robot_safety_checker.check_link_limits:
+                msg += '      - link limits\n'
+            if self.robot_safety_checker.check_self_collision:
+                msg += '      - self collisions\n'
+            rospy.loginfo(msg)
 
     def resolve_joint_order(self, q):
         qout = np.zeros(self.robot_safety_checker.ndof)
