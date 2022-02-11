@@ -3,7 +3,6 @@ import numpy as np
 from copy import deepcopy
 import pyexotica as exo
 from visualization_msgs.msg import Marker
-from std_srvs.srv import SetBool, SetBoolResponse
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64MultiArray
 from diagnostic_msgs.msg import DiagnosticStatus
