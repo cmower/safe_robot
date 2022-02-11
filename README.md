@@ -32,7 +32,7 @@ are prevented. Possible checks
 
 * (optional) `safe_robot/box_limit/marker` ([visualization_msgs/Marker](http://docs.ros.org/en/api/visualization_msgs/html/msg/Marker.html))
 
-    Optional, marker that shows the box limit for the end-effectors/links.
+    Optional, marker that shows the box limit for the end-effectors/links. This is only published when debug-mode is turned on (see below).
 
 ### Parameters
 
