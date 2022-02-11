@@ -1,24 +1,31 @@
 import rospy
 import numpy as np
+from copy import deepcopy
 import pyexotica as exo
 from visualization_msgs.msg import Marker
-from std_srvs.srv import SetBool, SetBoolResponse
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64MultiArray
 from diagnostic_msgs.msg import DiagnosticStatus
 
 class RobotSafetyChecker:
 
-    def __init__(self, exotica_xml_filename, link_xlim, link_ylim, link_zlim, safe_links, joint_position_limit_factor, safe_distance):
+    def __init__(self, exotica_xml_filename, link_xlim, link_ylim, link_zlim, safe_links, joint_position_limit_factor, joint_velocity_limit_factor, safe_distance):
 
         # Set variables
         self.q_targ = None
+        self.q_prev = None
+        self.t_prev = None
+        self.t_targ = None
         self.joint_position_limit_indicators = None
+        self.joint_velocity_limit_indicators = None
         self.safe_links = None
         self.flag = 0
-        self.check_joint_limits = True
+        self.check_joint_position_limits = True
+        self.check_joint_velocity_limits = True
         self.check_link_limits = True
         self.check_self_collision = True
+        self.niter = 0
+        self.stop_after_first_fail = True
 
         # Set box limits
         self.link_xlim = link_xlim
@@ -37,8 +44,10 @@ class RobotSafetyChecker:
 
         # Extract joint position/velocity limits from kinematic tree
         joint_position_limits = joint_position_limit_factor*self.kinematic_tree.get_joint_limits()
+        joint_velocity_limits = self.kinematic_tree.get_velocity_limits()
         self.joint_position_limits_lower = joint_position_limits[:,0]
         self.joint_position_limits_upper = joint_position_limits[:,1]
+        self.joint_velocity_limits = joint_velocity_limit_factor*joint_velocity_limits
 
     # Private methods
 
@@ -61,16 +70,31 @@ class RobotSafetyChecker:
     def _is_state_valid(self):
         return self.scene.is_state_valid(safe_distance=self.safe_distance)
 
+    def _in_joint_velocity_limits(self):
+        abs_dqdt = abs((self.q_targ - self.q_prev)/(self.t_targ - self.t_prev))
+        self.joint_velocity_limit_indicators = abs_dqdt <= self.joint_velocity_limits
+        return self.joint_velocity_limit_indicators.all()
+
+    def _resolve_joint_order(self, msg):
+        q = np.zeros(self.ndof)
+        for idx, name in enumerate(self.joint_names):
+            q[idx] = msg.position[msg.name.index(name)]
+        return q
+
+    def _prevent_future_joint_states(self):
+        if self.stop_after_first_fail:
+            self.is_safe = self._returnfalse
+
+    def _returnfalse(self):
+        return False
+
+
     # Public methods
 
-    def set_target_joint_state(self, msg):
+    def set_target_joint_state(self, t, msg):
         """Set the target joint velocity position."""
-
-        q_targ = np.zeros(self.ndof)
-        for idx, name in enumerate(self.joint_names):
-            q_targ[idx] = msg.position[msg.name.index(name)]
-
-        self.q_targ = q_targ
+        self.t_targ = t
+        self.q_targ = self._resolve_joint_order(msg)
         self.scene.update(self.q_targ) # update exotica
 
     def get_box_limit_marker(self):
@@ -97,10 +121,11 @@ class RobotSafetyChecker:
         self.flag = 0  # zero indicates no issues
 
         # Check position limits
-        if self.check_joint_limits:
+        if self.check_joint_position_limits:
             if not self._in_joint_position_limits():
                 is_safe = False
                 self.flag = -1
+                self._prevent_future_joint_states()
                 return is_safe
 
         # Check links are within limits
@@ -108,6 +133,7 @@ class RobotSafetyChecker:
             if not self._links_in_limits():
                 is_safe = False
                 self.flag = -2
+                self._prevent_future_joint_states()
                 return is_safe
 
         # Check self-collision
@@ -115,7 +141,21 @@ class RobotSafetyChecker:
             if not self._is_state_valid():
                 is_safe = False
                 self.flag = -3
+                self._prevent_future_joint_states()
                 return is_safe
+
+        # Check velocity limits
+        if self.check_joint_velocity_limits and (self.niter > 0):
+            if not self._in_joint_velocity_limits():
+                is_safe = False
+                self.flag = -4
+                self._prevent_future_joint_states()
+                return is_safe
+
+        # Reset
+        self.niter += 1
+        self.q_prev = self.q_targ.copy()
+        self.t_prev = deepcopy(self.t_targ)
 
         return is_safe
 
@@ -136,8 +176,15 @@ class RobotSafetyChecker:
                 info += f'{link_name}:\n'
                 for dim in ('x', 'y', 'z'):
                     info += f'  %s: %s\n' % (dim, str(link[dim]))
+
         elif self.flag == -3:
             info = 'robot in self collision'
+
+        elif self.flag == -4:
+            info = f'target violates joint velocity limits, joints inside velocity limit:\n'
+            for name, indicator in zip(self.joint_names, self.joint_velocity_limit_indicators):
+                info += f'{name}: {indicator}\n'
+
         else:
             raise AttributeError(f"did not recognize flag {self.flag}!")
 
@@ -164,15 +211,16 @@ class SafetyNode:
             link_ylim=[float(n) for n in rospy.get_param('~link_ylim').split(' ')],
             link_zlim=[float(n) for n in rospy.get_param('~link_zlim').split(' ')],
             safe_links=rospy.get_param('~safe_links').split(' '),
-            joint_position_limit_factor=rospy.get_param('~joint_position_limit_factor', 0.95),
-            safe_distance=rospy.get_param('~safe_distance', 0.0),
+            joint_position_limit_factor=np.clip(rospy.get_param('~joint_position_limit_factor', 0.95), 0.0, 1.0),
+            joint_velocity_limit_factor=np.clip(rospy.get_param('~joint_velocity_limit_factor', 0.95), 0.0, 1.0),
+            safe_distance=np.clip(rospy.get_param('~safe_distance', 0.0), 0.0, np.inf),
         )
 
         publish_as_joint_state = rospy.get_param('~publish_as_joint_state', True)
 
         # Setup publishers
-        self.diag_pub = rospy.Publisher('robot_safety/%s/status' % self.node_name[1:], DiagnosticStatus, queue_size=10)
-        cmd_topic = 'joint_states/target/command'
+        self.diag_pub = rospy.Publisher('robot_safety/status', DiagnosticStatus, queue_size=10)
+        cmd_topic = 'joint_states/command'
         if publish_as_joint_state:
             self.publish = self.publish_joint_state
             self.pub = rospy.Publisher(cmd_topic, JointState, queue_size=10)
@@ -182,9 +230,11 @@ class SafetyNode:
 
         # Setup robot safety checker
         self.robot_safety_checker = RobotSafetyChecker(**robot_safety_checker_setup)
-        self.robot_safety_checker.check_joint_limits = rospy.get_param('~check_joint_limits', True)
+        self.robot_safety_checker.check_joint_position_limits = rospy.get_param('~check_joint_position_limits', True)
         self.robot_safety_checker.check_link_limits = rospy.get_param('~check_link_limits', True)
         self.robot_safety_checker.check_self_collision = rospy.get_param('~check_self_collision', True)
+        self.robot_safety_checker.check_joint_velocity_limits = rospy.get_param('~check_joint_velocity_limits', True)
+        self.robot_safety_checker.stop_after_first_fail = rospy.get_param('~stop_after_first_fail', True)
 
         # Setup debugging
         self.debug = rospy.get_param('~debug', False)
@@ -215,12 +265,14 @@ class SafetyNode:
                 msg += '      - %s\n' % link_name
             rospy.loginfo(msg)
             msg = "[%s] performing checks:\n" % self.node_name
-            if self.robot_safety_checker.check_joint_limits:
-                msg += '      - joint limits\n'
+            if self.robot_safety_checker.check_joint_position_limits:
+                msg += '      - joint position limits\n'
             if self.robot_safety_checker.check_link_limits:
                 msg += '      - link limits\n'
             if self.robot_safety_checker.check_self_collision:
                 msg += '      - self collisions\n'
+            if self.robot_safety_checker.check_joint_velocity_limits:
+                msg += '      - joint velocity limits\n'
             rospy.loginfo(msg)
 
     def resolve_joint_order(self, q):
@@ -250,11 +302,10 @@ class SafetyNode:
         self.diag_pub.publish(DiagnosticStatus(level=level, name=str(flag), message=info, hardware_id=self.node_name))
 
     def callback(self, msg):
-        self.robot_safety_checker.set_target_joint_state(msg)
+        self.robot_safety_checker.set_target_joint_state(rospy.Time.now().to_sec(), msg)
         if self.robot_safety_checker.is_safe():
-            if self.robot_safety_checker.flag == 0:
-                q_target = self.resolve_joint_order(self.robot_safety_checker.q_targ)
-                self.publish(q_target)
+            q_target = self.resolve_joint_order(self.robot_safety_checker.q_targ)
+            self.publish(q_target)
         self.publish_report()
 
     def debug_loop(self, event):
