@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 from safe_robot.safe_robot import SafetyNode
 
 def main():

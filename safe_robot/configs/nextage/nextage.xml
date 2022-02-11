@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<KukaExoticaConfig>
+<NextageExoticaConfig>
 
   <!-- THIS CONFIGURATION IS NOT BEING USED AS A SOLVER -->
 
@@ -9,12 +9,12 @@
 
     <PlanningScene>
       <Scene>
-        <JointGroup>arm</JointGroup>
-        <URDF>{exotica_examples}/resources/robots/lwr_simplified.urdf</URDF>
-        <SRDF>{exotica_examples}/resources/robots/lwr_simplified.srdf</SRDF>
+        <JointGroup>whole_body</JointGroup>
+        <URDF>{nextage_smart_factory}/urdf/nextagea_dual_pick.urdf</URDF>
+        <SRDF>{nextagea_moveit_config}/config/NextageAOpen.srdf</SRDF>
       </Scene>
     </PlanningScene>
 
   </UnconstrainedEndPoseProblem>
 
-</KukaExoticaConfig>
+</NextageExoticaConfig>
