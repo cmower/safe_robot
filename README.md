@@ -22,7 +22,7 @@ are prevented. Possible checks
 
 ### Published topics
 
-* `joint_states/target/command` ([sensor_msgs/JointState](http://docs.ros.org/en/noetic/api/sensor_msgs/html/msg/JointState.html) or [std_msgs/Float64MultiArray](http://docs.ros.org/en/api/std_msgs/html/msg/Float64MultiArray.html))
+* `joint_states/command` ([sensor_msgs/JointState](http://docs.ros.org/en/noetic/api/sensor_msgs/html/msg/JointState.html) or [std_msgs/Float64MultiArray](http://docs.ros.org/en/api/std_msgs/html/msg/Float64MultiArray.html))
 
     The commanded joint state. Note, optionally this can be sent as a `sensor_msgs/JointState` message or `std_msgs/Float64MultiArray`.
 
