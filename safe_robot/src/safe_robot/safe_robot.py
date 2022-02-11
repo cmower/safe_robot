@@ -52,10 +52,12 @@ class RobotSafetyChecker:
     # Private methods
 
     def _in_joint_position_limits(self):
+        """Check joint position limits."""
         self.joint_position_limit_indicators = np.logical_and(self.joint_position_limits_lower <= self.q_targ, self.q_targ <= self.joint_position_limits_upper)
         return self.joint_position_limit_indicators.all()
 
     def _links_in_limits(self):
+        """Check end-effector/link limits within box."""
         safe_links = {}
         for link_name in self.safe_links:
             link_targ_position = self.scene.fk(link_name).get_translation()
@@ -68,24 +70,29 @@ class RobotSafetyChecker:
         return all(all(link.values()) for link in self.safe_links.values())
 
     def _is_state_valid(self):
+        """Self-collision check, using EXOTica."""
         return self.scene.is_state_valid(safe_distance=self.safe_distance)
 
     def _in_joint_velocity_limits(self):
+        """Check joint velocity limits."""
         abs_dqdt = abs((self.q_targ - self.q_prev)/(self.t_targ - self.t_prev))
         self.joint_velocity_limit_indicators = abs_dqdt <= self.joint_velocity_limits
         return self.joint_velocity_limit_indicators.all()
 
     def _resolve_joint_order(self, msg):
+        """Returns joint positions in the ordering of EXOTica."""
         q = np.zeros(self.ndof)
         for idx, name in enumerate(self.joint_names):
             q[idx] = msg.position[msg.name.index(name)]
         return q
 
     def _prevent_future_joint_states(self):
+        """Replace is_safe method with _returnfalse when stop_after_first_fail is True."""
         if self.stop_after_first_fail:
             self.is_safe = self._returnfalse
 
     def _returnfalse(self):
+        """Method that replaces is_safe when stop_after_first_fail is True. The goal of the method is to only return False."""
         return False
 
 
@@ -276,20 +283,24 @@ class SafetyNode:
             rospy.loginfo(msg)
 
     def resolve_joint_order(self, q):
+        """Return joints in order specified in joint_name_order."""
         qout = np.zeros(self.robot_safety_checker.ndof)
         for idx, joint_name in enumerate(self.joint_name_order):
             qout[idx] = q[self.robot_safety_checker.joint_names.index(joint_name)]
         return qout
 
     def publish_float_array(self, q_target):
+        """Publish joint state as a std_msgs/Float64MultiArray message."""
         self.pub.publish(Float64MultiArray(data=q_target))
 
     def publish_joint_state(self, q_target):
+        """Publish joint state as a sensor_msgs/JointState message."""
         msg = JointState(name=self.joint_name_order, position=q_target)
         msg.header.stamp = rospy.Time.now()
         self.pub.publish(msg)
 
     def publish_report(self):
+        """Publishes the report as a diagnostic_msgs/DiagnosticStatus message."""
         flag, info = self.robot_safety_checker.report()
         if self.debug:
             rospy.loginfo('report:\nflag=%d\ninfo:\n%s', flag, info)
@@ -302,6 +313,7 @@ class SafetyNode:
         self.diag_pub.publish(DiagnosticStatus(level=level, name=str(flag), message=info, hardware_id=self.node_name))
 
     def callback(self, msg):
+        """Callback method for target joint states."""
         self.robot_safety_checker.set_target_joint_state(rospy.Time.now().to_sec(), msg)
         if self.robot_safety_checker.is_safe():
             q_target = self.resolve_joint_order(self.robot_safety_checker.q_targ)
@@ -309,8 +321,10 @@ class SafetyNode:
         self.publish_report()
 
     def debug_loop(self, event):
+        """Publish marker when debug-mode is on."""
         self.box_limit_marker.header.stamp = rospy.Time.now()
         self.box_limit_marker_pub.publish(self.box_limit_marker)
 
     def spin(self):
+        """Simple wrapper method for rospy.spin."""
         rospy.spin()
