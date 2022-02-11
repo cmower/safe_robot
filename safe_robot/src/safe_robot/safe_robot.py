@@ -25,6 +25,7 @@ class RobotSafetyChecker:
         self.check_link_limits = True
         self.check_self_collision = True
         self.niter = 0
+        self.stop_after_first_fail = True
 
         # Set box limits
         self.link_xlim = link_xlim
@@ -80,6 +81,14 @@ class RobotSafetyChecker:
             q[idx] = msg.position[msg.name.index(name)]
         return q
 
+    def _prevent_future_joint_states(self):
+        if self.stop_after_first_fail:
+            self.is_safe = self._returnfalse
+
+    def _returnfalse(self):
+        return False
+
+
     # Public methods
 
     def set_target_joint_state(self, t, msg):
@@ -116,6 +125,7 @@ class RobotSafetyChecker:
             if not self._in_joint_position_limits():
                 is_safe = False
                 self.flag = -1
+                self._prevent_future_joint_states()
                 return is_safe
 
         # Check links are within limits
@@ -123,6 +133,7 @@ class RobotSafetyChecker:
             if not self._links_in_limits():
                 is_safe = False
                 self.flag = -2
+                self._prevent_future_joint_states()
                 return is_safe
 
         # Check self-collision
@@ -130,6 +141,7 @@ class RobotSafetyChecker:
             if not self._is_state_valid():
                 is_safe = False
                 self.flag = -3
+                self._prevent_future_joint_states()
                 return is_safe
 
         # Check velocity limits
@@ -137,6 +149,7 @@ class RobotSafetyChecker:
             if not self._in_joint_velocity_limits():
                 is_safe = False
                 self.flag = -4
+                self._prevent_future_joint_states()
                 return is_safe
 
         # Reset
@@ -221,6 +234,7 @@ class SafetyNode:
         self.robot_safety_checker.check_link_limits = rospy.get_param('~check_link_limits', True)
         self.robot_safety_checker.check_self_collision = rospy.get_param('~check_self_collision', True)
         self.robot_safety_checker.check_joint_velocity_limits = rospy.get_param('~check_joint_velocity_limits', True)
+        self.robot_safety_checker.stop_after_first_fail = rospy.get_param('~stop_after_first_fail', True)
 
         # Setup debugging
         self.debug = rospy.get_param('~debug', False)
@@ -290,9 +304,8 @@ class SafetyNode:
     def callback(self, msg):
         self.robot_safety_checker.set_target_joint_state(rospy.Time.now().to_sec(), msg)
         if self.robot_safety_checker.is_safe():
-            if self.robot_safety_checker.flag == 0:
-                q_target = self.resolve_joint_order(self.robot_safety_checker.q_targ)
-                self.publish(q_target)
+            q_target = self.resolve_joint_order(self.robot_safety_checker.q_targ)
+            self.publish(q_target)
         self.publish_report()
 
     def debug_loop(self, event):
