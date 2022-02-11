@@ -219,7 +219,7 @@ class SafetyNode:
         publish_as_joint_state = rospy.get_param('~publish_as_joint_state', True)
 
         # Setup publishers
-        self.diag_pub = rospy.Publisher('robot_safety/%s/status' % self.node_name[1:], DiagnosticStatus, queue_size=10)
+        self.diag_pub = rospy.Publisher('robot_safety/status', DiagnosticStatus, queue_size=10)
         cmd_topic = 'joint_states/target/command'
         if publish_as_joint_state:
             self.publish = self.publish_joint_state
