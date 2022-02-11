@@ -211,9 +211,9 @@ class SafetyNode:
             link_ylim=[float(n) for n in rospy.get_param('~link_ylim').split(' ')],
             link_zlim=[float(n) for n in rospy.get_param('~link_zlim').split(' ')],
             safe_links=rospy.get_param('~safe_links').split(' '),
-            joint_position_limit_factor=rospy.get_param('~joint_position_limit_factor', 0.95),
-            joint_velocity_limit_factor=rospy.get_param('~joint_velocity_limit_factor', 0.95),
-            safe_distance=rospy.get_param('~safe_distance', 0.0),
+            joint_position_limit_factor=np.clip(rospy.get_param('~joint_position_limit_factor', 0.95), 0.0, 1.0),
+            joint_velocity_limit_factor=np.clip(rospy.get_param('~joint_velocity_limit_factor', 0.95), 0.0, 1.0),
+            safe_distance=np.clip(rospy.get_param('~safe_distance', 0.0), 0.0, np.inf),
         )
 
         publish_as_joint_state = rospy.get_param('~publish_as_joint_state', True)
