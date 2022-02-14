@@ -6,6 +6,7 @@ from visualization_msgs.msg import Marker
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64MultiArray
 from diagnostic_msgs.msg import DiagnosticStatus
+from std_srvs.srv import Trigger, TriggerResponse
 
 class RobotSafetyChecker:
 
@@ -26,6 +27,7 @@ class RobotSafetyChecker:
         self.check_self_collision = True
         self.niter = 0
         self.stop_after_first_fail = True
+        self.is_safe = self._is_safe
 
         # Set box limits
         self.link_xlim = link_xlim
@@ -95,32 +97,7 @@ class RobotSafetyChecker:
         """Method that replaces is_safe when stop_after_first_fail is True. The goal of the method is to only return False."""
         return False
 
-
-    # Public methods
-
-    def set_target_joint_state(self, t, msg):
-        """Set the target joint velocity position."""
-        self.t_targ = t
-        self.q_targ = self._resolve_joint_order(msg)
-        self.scene.update(self.q_targ) # update exotica
-
-    def get_box_limit_marker(self):
-        """Returns a ROS marker for visualizing the box limit."""
-        marker = Marker()
-        marker.header.frame_id = self.base_link_id
-        # marker.ns = 'safe_robot'
-        marker.id = 0
-        marker.type = Marker.CUBE
-        marker.action = Marker.ADD
-        marker.pose.orientation.w = 1.0
-        marker.scale.x = self.link_xlim[1] - self.link_xlim[0]
-        marker.scale.y = self.link_ylim[1] - self.link_ylim[0]
-        marker.scale.z = self.link_zlim[1] - self.link_zlim[0]
-        marker.color.a = 0.5
-        marker.color.r = 1.0
-        return marker
-
-    def is_safe(self):
+    def _is_safe(self):
         """Returns false when safety checks are violated, true otherwise."""
 
         # Setup
@@ -165,6 +142,37 @@ class RobotSafetyChecker:
         self.t_prev = deepcopy(self.t_targ)
 
         return is_safe
+
+
+    # Public methods
+
+    def reset(self):
+        success = self.is_safe == self._returnfalse:
+        self.is_safe = self._is_safe
+        return success
+
+
+    def set_target_joint_state(self, t, msg):
+        """Set the target joint velocity position."""
+        self.t_targ = t
+        self.q_targ = self._resolve_joint_order(msg)
+        self.scene.update(self.q_targ) # update exotica
+
+    def get_box_limit_marker(self):
+        """Returns a ROS marker for visualizing the box limit."""
+        marker = Marker()
+        marker.header.frame_id = self.base_link_id
+        # marker.ns = 'safe_robot'
+        marker.id = 0
+        marker.type = Marker.CUBE
+        marker.action = Marker.ADD
+        marker.pose.orientation.w = 1.0
+        marker.scale.x = self.link_xlim[1] - self.link_xlim[0]
+        marker.scale.y = self.link_ylim[1] - self.link_ylim[0]
+        marker.scale.z = self.link_zlim[1] - self.link_zlim[0]
+        marker.color.a = 0.5
+        marker.color.r = 1.0
+        return marker
 
     def report(self):
         """Returns an indicator flag and human-readable information."""
@@ -259,6 +267,9 @@ class SafetyNode:
         # Start subscribers
         rospy.Subscriber('joint_states/target', JointState, self.callback)
 
+        # Start services
+        rospy.Service('safe_robot/reset', Trigger, self.service_reset)
+
         # Report successful initialization
         msg = f"[{self.node_name}] successfully initialized node, expecting joint states with joint names:\n"
         for name in self.joint_name_order:
@@ -281,6 +292,15 @@ class SafetyNode:
             if self.robot_safety_checker.check_joint_velocity_limits:
                 msg += '      - joint velocity limits\n'
             rospy.loginfo(msg)
+
+    def service_reset(self, req):
+        if self.robot_safety_checker.reset():
+            success = True
+            message = 'reset robot safety checker'
+        else:
+            success = False
+            message = 'was not able to reset robot safety checker'
+        return TriggerResponse(message=message, success=success)
 
     def resolve_joint_order(self, q):
         """Return joints in order specified in joint_name_order."""
