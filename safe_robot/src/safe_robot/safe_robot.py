@@ -18,7 +18,7 @@ class RobotSafetyChecker:
         self.flag = 0
         self.check_joint_limits = True
         self.check_link_limits = True
-        self.check_self_collision = True
+        self.check_self_collision = False
 
         # Set box limits
         self.link_xlim = link_xlim
@@ -36,6 +36,8 @@ class RobotSafetyChecker:
         self.safe_distance = safe_distance
 
         # Extract joint position/velocity limits from kinematic tree
+        joint_position_limit_factor = 0.8
+        rospy.logwarn(f"{joint_position_limit_factor}")
         joint_position_limits = joint_position_limit_factor*self.kinematic_tree.get_joint_limits()
         self.joint_position_limits_lower = joint_position_limits[:,0]
         self.joint_position_limits_upper = joint_position_limits[:,1]
@@ -182,9 +184,14 @@ class SafetyNode:
 
         # Setup robot safety checker
         self.robot_safety_checker = RobotSafetyChecker(**robot_safety_checker_setup)
-        self.robot_safety_checker.check_joint_limits = rospy.get_param('~check_joint_limits', True)
-        self.robot_safety_checker.check_link_limits = rospy.get_param('~check_link_limits', True)
-        self.robot_safety_checker.check_self_collision = rospy.get_param('~check_self_collision', True)
+        # self.robot_safety_checker.check_joint_limits = rospy.get_param('~check_joint_limits', True)
+        # self.robot_safety_checker.check_link_limits = rospy.get_param('~check_link_limits', True)
+        # self.robot_safety_checker.check_self_collision = rospy.get_param('~check_self_collision', True)
+        # print("----------")
+        # print(rospy.has_param('~check_joint_limits'))
+        # print(rospy.has_param('~check_link_limits'))
+        # print(rospy.has_param('~check_self_collision'))
+        # print("----------")
 
         # Setup debugging
         self.debug = rospy.get_param('~debug', False)
