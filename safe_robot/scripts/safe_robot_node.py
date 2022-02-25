@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-from safe_robot.safe_robot import SafetyNode
+from safe_robot.node import Node
 
 def main():
-    SafetyNode().spin()
+    Node().spin()
 
 if __name__ == '__main__':
     main()

@@ -5,10 +5,20 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   std_srvs
-  diagnostic_msgs
+  message_generation
 )
 
 catkin_python_setup()
+
+add_message_files(
+  FILES
+  Status.msg
+  )
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 catkin_package()
 
