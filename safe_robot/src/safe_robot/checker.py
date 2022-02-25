@@ -33,9 +33,9 @@ class Checker(ABC):
 
 
 ######################################
-## Joint limit checker
+## Limit checker
 
-class JointLimit(Checker):
+class Limit(Checker):
 
 
     def get_limit_param(self, param_name, default):
@@ -57,7 +57,7 @@ class JointLimit(Checker):
 ######################################
 ## Joint position limit checker
 
-class JointPositionLimit(JointLimit):
+class JointPositionLimit(Limit):
 
 
     def init(self):
@@ -78,7 +78,7 @@ class JointPositionLimit(JointLimit):
 ######################################
 ## Joint velocity limit checker
 
-class JointVelocityLimit(JointLimit):
+class JointVelocityLimit(Limit):
 
 
     def init(self):
@@ -102,7 +102,7 @@ class JointVelocityLimit(JointLimit):
 ######################################
 ## Link box limit checker
 
-class LinkBoxLimit(Checker):
+class LinkBoxLimit(Limit):
 
 
     def init(self):
@@ -113,24 +113,17 @@ class LinkBoxLimit(Checker):
         def in_lim(p, lim):
             return lim[0] <= p <= lim[1]
 
-        self.in_xlim = partial(in_lim, lim=self.get_lim_param('~box_xlim'))
-        self.in_ylim = partial(in_lim, lim=self.get_lim_param('~box_ylim'))
-        self.in_zlim = partial(in_lim, lim=self.get_lim_param('~box_zlim'))
-
-    def get_lim_param(self, name):
-        if rospy.has_param(name):
-            return np.fromstring(rospy.get_param(name), sep=' ', dtype=float)
-        else:
-            return [-np.inf, np.inf]
-
+        self.in_xlim = partial(in_lim, lim=self.get_limit_param('~box_xlim', [-np.inf, np.inf]))
+        self.in_ylim = partial(in_lim, lim=self.get_limit_param('~box_ylim', [-np.inf, np.inf]))
+        self.in_zlim = partial(in_lim, lim=self.get_limit_param('~box_zlim', [-np.inf, np.inf]))
 
     def in_lim(self, link):
         p = self.query.get_link_position(link)
         return self.in_xlim(p) and self.in_ylim(p) and self.in_zlim(p)
 
 
-    def _is_safe(self):
-        return all(self.in_lim(link) for link in self.links)
+    def check_indicators(self):
+        return [self.in_lim(link) for link in self.links]
 
 
 ######################################
